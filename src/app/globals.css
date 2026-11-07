@@ -1,0 +1,88 @@
+@import "tailwindcss";
+
+/* Sai Motor Works design tokens */
+@theme inline {
+  --font-sans: "Inter Variable", "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+
+  --color-navy: #0f172a;
+  --color-navy-800: #1e293b;
+  --color-page: #f1f5f9;
+  --color-line: #e2e8f0;
+  --color-primary: #0b5cff;
+  --color-primary-hover: #0047d6;
+  --color-success: #10b981;
+  --color-warning: #f59e0b;
+  --color-danger: #ef4444;
+  --color-ink: #0f172a;
+  --color-muted: #64748b;
+  --color-plate: #facc15;
+
+  --radius-card: 20px;
+  --radius-input: 12px;
+
+  --shadow-soft: 0 1px 2px rgb(15 23 42 / 0.04), 0 4px 16px rgb(15 23 42 / 0.06);
+}
+
+html,
+body {
+  background: var(--color-page);
+  color: var(--color-ink);
+}
+
+body {
+  font-family: var(--font-sans);
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* New check-in highlight on the dashboard */
+@keyframes slide-in-top {
+  from { opacity: 0; transform: translateY(-16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes flash-bg {
+  0% { background-color: rgb(11 92 255 / 0.14); }
+  100% { background-color: #ffffff; }
+}
+.row-new {
+  animation: slide-in-top 0.45s ease-out, flash-bg 3.5s ease-out;
+}
+
+@keyframes live-pulse {
+  0% { box-shadow: 0 0 0 0 rgb(16 185 129 / 0.6); }
+  70% { box-shadow: 0 0 0 8px rgb(16 185 129 / 0); }
+  100% { box-shadow: 0 0 0 0 rgb(16 185 129 / 0); }
+}
+.live-dot { animation: live-pulse 1.8s infinite; }
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20%, 60% { transform: translateX(-8px); }
+  40%, 80% { transform: translateX(8px); }
+}
+.animate-shake { animation: shake 0.4s ease-in-out; }
+
+/* Kiosk lockdown (added by <KioskLockdown />): no pull-to-refresh, bounce,
+   double-tap zoom, long-press menus or text selection outside inputs */
+html.kiosk-mode,
+html.kiosk-mode body {
+  overscroll-behavior: none;
+  touch-action: pan-x pan-y;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+html.kiosk-mode input,
+html.kiosk-mode textarea {
+  -webkit-user-select: text;
+  user-select: text;
+}
+html.kiosk-mode img { -webkit-user-drag: none; }
+
+/* Print: app chrome is hidden, the A4 job sheet prints on its own */
+@media print {
+  @page { size: A4; margin: 12mm; }
+  html, body { background: #fff !important; }
+  .no-print, [data-sonner-toaster] { display: none !important; }
+  * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+}

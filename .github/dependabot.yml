@@ -1,0 +1,32 @@
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      timezone: Australia/Sydney
+    open-pull-requests-limit: 5
+    # Wait a week before proposing a brand-new release (supply-chain safety).
+    cooldown:
+      default-days: 7
+    groups:
+      minor-and-patch:
+        update-types: [minor, patch]
+    # Major upgrades (e.g. TypeScript 7, ESLint 10, Vitest 5, @types/node beyond the Node we run)
+    # are done on purpose, by hand, as their own task, not proposed weekly.
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      timezone: Australia/Sydney
+    cooldown:
+      default-days: 7
+    groups:
+      actions:
+        patterns: ["*"]

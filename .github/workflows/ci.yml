@@ -1,0 +1,110 @@
+# Runs on both repos (naman9896/sai-motor-checkin and labmotors/saimotorworks-jobs).
+# `checks`, `semgrep` and `gitleaks` need no secrets. `db-e2e` uses the STAGING Supabase secrets,
+# which exist only in naman9896/sai-motor-checkin, so it is skipped everywhere else.
+# Both repos are private without GitHub Code Security / Secret Protection, so static analysis
+# (Semgrep CE) and secret scanning (Gitleaks) run inside CI instead of CodeQL / GitHub scanning.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    name: Lint, typecheck, unit tests, audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm audit --audit-level=high
+
+  semgrep:
+    name: Semgrep CE (static analysis)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    container:
+      image: semgrep/semgrep:1.181.0@sha256:81474464c1f07483ba0682a44787fd93c91397419762a04abe2bafaae396304b
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      # `semgrep scan` (not `semgrep ci`): no Semgrep account or token. Fails on any finding.
+      # Suppress a reviewed false positive with `// nosemgrep: <rule-id>` and a reason, never by
+      # dropping a rule pack.
+      - run: >-
+          semgrep scan --error --metrics=off --disable-version-check
+          --config p/typescript --config p/react --config p/nextjs --config p/nodejs
+          --config p/secrets --config p/owasp-top-ten
+
+  gitleaks:
+    name: Gitleaks (secret scanning)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0 # scan the whole history, not just the last commit
+          persist-credentials: false
+      # Official release binary, checked against a pinned SHA-256 (the gitleaks GitHub Action
+      # needs a paid licence key on organisation repos such as labmotors).
+      - name: Install gitleaks 8.30.1
+        run: |
+          curl -sSfL -o "$RUNNER_TEMP/gitleaks.tgz" \
+            https://github.com/gitleaks/gitleaks/releases/download/v8.30.1/gitleaks_8.30.1_linux_x64.tar.gz
+          echo "551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb  $RUNNER_TEMP/gitleaks.tgz" | sha256sum -c -
+          tar -xzf "$RUNNER_TEMP/gitleaks.tgz" -C "$RUNNER_TEMP" gitleaks
+      - name: Scan git history (secrets redacted in output)
+        run: '"$RUNNER_TEMP/gitleaks" git --redact --no-banner --verbose .'
+
+  db-e2e:
+    name: DB integration + E2E (staging)
+    needs: checks
+    # Only on the dev repo, and not for Dependabot PRs (they can't read Actions secrets).
+    if: github.repository == 'naman9896/sai-motor-checkin' && github.actor != 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      TEST_SUPABASE_URL: ${{ secrets.TEST_SUPABASE_URL }}
+      TEST_SUPABASE_ANON_KEY: ${{ secrets.TEST_SUPABASE_ANON_KEY }}
+      TEST_SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.TEST_SUPABASE_SERVICE_ROLE_KEY }}
+      TEST_OWNER_EMAIL: ${{ secrets.TEST_OWNER_EMAIL }}
+      TEST_OWNER_PASSWORD: ${{ secrets.TEST_OWNER_PASSWORD }}
+      # The guard refuses to run if this is empty or matches TEST_SUPABASE_URL.
+      PROD_SUPABASE_PROJECT_REFS: ${{ secrets.PROD_SUPABASE_PROJECT_REFS }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run test:db
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: failure()
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7
