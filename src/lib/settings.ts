@@ -1,32 +1,19 @@
+import { business } from "@config/business";
 import type { KioskSettings } from "./types";
 
-export const DEFAULT_BUSINESS_NAME = "Sai Motor Works";
-
-export const DEFAULT_QUICK_MAKES = ["Toyota", "Ford", "Mazda", "Hyundai", "Holden", "Volkswagen", "Subaru", "Kia", "Nissan", "BMW"];
-
-export const DEFAULT_CONSENT =
-  "By submitting this form, you confirm that the details provided are accurate and authorise Sai Motor Works to carry out an inspection of your vehicle.";
-
-export const DEFAULT_PAUSED_MESSAGE = "Check-in is currently unavailable – please see the front counter.";
+export const DEFAULT_CONSENT = business.kiosk.consent;
+export const DEFAULT_PAUSED_MESSAGE = business.kiosk.pausedMessage;
 
 /** Used by the kiosk until the real settings arrive (and if they can't be loaded). */
 export const DEFAULT_KIOSK_SETTINGS: KioskSettings = {
-  business_name: DEFAULT_BUSINESS_NAME,
-  logo_path: null,
   kiosk_enabled: true,
-  kiosk_paused_message: DEFAULT_PAUSED_MESSAGE,
-  kiosk_title: "Vehicle Check-in Form",
-  kiosk_subtitle: "Please provide your contact details and vehicle information.",
-  consent_text: DEFAULT_CONSENT,
-  show_year: true,
-  show_colour: true,
-  show_odometer: true,
-  email_required: true,
-  quick_makes: DEFAULT_QUICK_MAKES,
-  thank_you_reset_seconds: 8,
+  kiosk_paused_message: null,
+  kiosk_title: null,
+  kiosk_subtitle: null,
+  consent_text: null,
+  thank_you_reset_seconds: 5,
   idle_timeout_minutes: 3,
   pin_set: false,
-  staff_pin_set: false,
   updated_at: null,
 };
 

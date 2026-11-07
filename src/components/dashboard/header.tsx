@@ -29,7 +29,7 @@ export function DashboardHeader({ back }: { back?: { href: string; label: string
   const liveLabel = live === "live" ? "Live" : live === "reconnecting" ? "Reconnecting…" : "Connecting…";
 
   return (
-    <header className="no-print sticky top-0 z-30 bg-navy text-white shadow-lg">
+    <header className="no-print sticky top-0 z-30 border-b-4 border-primary bg-navy text-white shadow-lg">
       <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-4 py-2.5 sm:px-6">
         <div className="flex min-w-0 items-center gap-3">
           <Link href="/dashboard" className="shrink-0 rounded-[8px] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-white/20">
@@ -100,11 +100,9 @@ export function DashboardHeader({ back }: { back?: { href: string; label: string
                           className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left hover:bg-slate-50"
                         >
                           <span className="min-w-0">
-                            <span className="block truncate text-sm font-semibold">
-                              {c.first_name} {c.last_name}
-                            </span>
+                            <span className="block truncate text-sm font-semibold">{c.customer_name}</span>
                             <span className="block truncate text-xs text-muted">
-                              <span className="font-mono font-bold">{c.rego}</span> · {c.make} {c.model}
+                              <span className="font-mono font-bold">{c.reference_no}</span> · {c.make} {c.model}
                             </span>
                           </span>
                           <span className="shrink-0 text-xs text-muted">{timeAgo(c.created_at)}</span>

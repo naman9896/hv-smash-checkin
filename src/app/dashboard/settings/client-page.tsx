@@ -1,23 +1,19 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Bell, Building2, CalendarDays, Database, HardHat, ShieldCheck, Tablet } from "lucide-react";
+import { Bell, Building2, Database, ShieldCheck, Tablet } from "lucide-react";
 import { DashboardHeader } from "@/components/dashboard/header";
-import { BookingTab } from "@/components/settings/booking-tab";
 import { BusinessTab } from "@/components/settings/business-tab";
 import { DataTab } from "@/components/settings/data-tab";
 import { KioskTab } from "@/components/settings/kiosk-tab";
 import { NotificationsTab } from "@/components/settings/notifications-tab";
 import { SecurityTab } from "@/components/settings/security-tab";
-import { StaffTab } from "@/components/settings/staff-tab";
 import { cn } from "@/lib/utils";
 
 const TABS = [
   { id: "business", label: "Business Details", Icon: Building2, Comp: BusinessTab },
   { id: "security", label: "Security", Icon: ShieldCheck, Comp: SecurityTab },
   { id: "kiosk", label: "Kiosk", Icon: Tablet, Comp: KioskTab },
-  { id: "booking", label: "Online Booking", Icon: CalendarDays, Comp: BookingTab },
-  { id: "staff", label: "Staff", Icon: HardHat, Comp: StaffTab },
   { id: "notifications", label: "Notifications", Icon: Bell, Comp: NotificationsTab },
   { id: "data", label: "Data", Icon: Database, Comp: DataTab },
 ] as const;

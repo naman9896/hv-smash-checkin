@@ -1,15 +1,15 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Archive, CalendarDays, CheckCircle2, ChevronRight, ClipboardList, Gauge, HardHat, Inbox, Loader2, Mail, Phone, Search, Wrench, X } from "lucide-react";
-import { Plate, StatusPill } from "@/components/brand";
+import { Archive, CalendarDays, Car, CheckCircle2, ChevronRight, ClipboardList, FileText, Inbox, Loader2, Mail, Phone, Search, Wrench, X } from "lucide-react";
+import { JobTypeBadge, StatusPill } from "@/components/brand";
 import { CheckinDrawer } from "@/components/checkin-drawer";
 import { ReturningBadge } from "@/components/dashboard/checkin-detail";
 import { DashboardHeader } from "@/components/dashboard/header";
 import { useDashboard } from "@/components/dashboard/shell";
 import { Switch } from "@/components/ui/switch";
 import { STATUS_LABEL, type Checkin, type CheckinStatus } from "@/lib/types";
-import { cn, formatKm, phoneDigits, rangeBounds, timeAgo, vehicleTitle, type DateRange } from "@/lib/utils";
+import { cn, formatAuPhone, rangeBounds, timeAgo, vehicleTitle, type DateRange } from "@/lib/utils";
 
 type Filter = "all" | CheckinStatus;
 const FILTERS: Filter[] = ["all", "new", "in_progress", "completed", "cancelled"];
@@ -22,7 +22,7 @@ const RANGES: { value: DateRange; label: string }[] = [
 ];
 
 export default function DashboardPage() {
-  const { rows, loading, fresh, unread, selectedId, openCheckin, showArchived, setShowArchived, jobs } = useDashboard();
+  const { rows, loading, fresh, unread, selectedId, openCheckin, showArchived, setShowArchived } = useDashboard();
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<Filter>("all");
   const [range, setRange] = useState<DateRange>("all");
@@ -63,35 +63,28 @@ export default function DashboardPage() {
     return inScope.filter((r) => {
       if (filter !== "all" && r.status !== filter) return false;
       if (!q) return true;
-      const hay = [r.first_name, r.last_name, `${r.first_name} ${r.last_name}`, r.email ?? "", r.rego, r.make, r.model, r.reference_no, r.assigned_to ?? ""]
+      const hay = [r.customer_name, r.email, r.make, r.model, r.reference_no, r.insurance_company ?? "", r.claim_number ?? ""]
         .join(" ")
         .toLowerCase();
       return hay.includes(q) || (qDigits.length >= 3 && r.phone.replace(/\D/g, "").includes(qDigits));
     });
   }, [inScope, query, filter]);
 
-  /** Returning if the database flagged it, or an older loaded check-in shares the rego or phone. */
+  /** Returning if the database flagged it, or an older loaded check-in shares the phone or email. */
   const returning = useMemo(() => {
     const ids = new Set<string>();
     const sorted = [...rows].sort((a, b) => a.created_at.localeCompare(b.created_at));
-    const regos = new Set<string>();
-    const phones = new Set<string>();
+    const seen = new Set<string>();
     for (const r of sorted) {
-      if (r.returning_customer || regos.has(r.rego) || phones.has(phoneDigits(r.phone))) ids.add(r.id);
-      regos.add(r.rego);
-      phones.add(phoneDigits(r.phone));
+      if (r.returning_customer || seen.has(r.phone) || seen.has(r.email)) ids.add(r.id);
+      seen.add(r.phone);
+      seen.add(r.email);
     }
     return ids;
   }, [rows]);
 
   const unreadIds = useMemo(() => new Set(unread.map((u) => u.id)), [unread]);
 
-  /** Job number(s) linked to each check-in. */
-  const jobsByCheckin = useMemo(() => {
-    const m = new Map<string, string[]>();
-    jobs.forEach((j) => j.checkin_id && m.set(j.checkin_id, [...(m.get(j.checkin_id) ?? []), j.job_no]));
-    return m;
-  }, [jobs]);
   const selected = rows.find((r) => r.id === selectedId) ?? null;
 
   return (
@@ -115,7 +108,7 @@ export default function DashboardPage() {
               type="search"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search name, phone, email, rego, make or model"
+              placeholder="Search name, phone, email, make, model or claim number"
               aria-label="Search check-ins"
               className="h-12 w-full rounded-[12px] border border-line bg-white pl-12 pr-10 text-[16px] shadow-soft focus-visible:border-primary focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/15"
             />
@@ -161,7 +154,7 @@ export default function DashboardPage() {
                 onClick={() => setRange(r.value)}
                 className={cn(
                   "h-9 rounded-full border px-3.5 text-sm font-semibold transition-colors",
-                  range === r.value ? "border-primary bg-blue-50 text-primary" : "border-line bg-white text-ink hover:bg-slate-50",
+                  range === r.value ? "border-primary bg-primary/10 text-primary" : "border-line bg-white text-ink hover:bg-slate-50",
                 )}
               >
                 {r.label}
@@ -219,7 +212,7 @@ export default function DashboardPage() {
           ) : (
             <ul className="divide-y divide-line">
               {visible.map((c) => (
-                <Row key={c.id} c={c} fresh={fresh.has(c.id)} unread={unreadIds.has(c.id)} returning={returning.has(c.id)} jobNos={jobsByCheckin.get(c.id)} onOpen={() => openCheckin(c.id)} />
+                <Row key={c.id} c={c} fresh={fresh.has(c.id)} unread={unreadIds.has(c.id)} returning={returning.has(c.id)} onOpen={() => openCheckin(c.id)} />
               ))}
             </ul>
           )}
@@ -236,14 +229,12 @@ function Row({
   fresh,
   unread,
   returning,
-  jobNos,
   onOpen,
 }: {
   c: Checkin;
   fresh: boolean;
   unread: boolean;
   returning: boolean;
-  jobNos?: string[];
   onOpen: () => void;
 }) {
   return (
@@ -253,46 +244,41 @@ function Row({
         onClick={onOpen}
         className="group flex w-full flex-col gap-3 px-4 py-4 text-left transition-colors hover:bg-slate-50 focus-visible:bg-slate-50 focus-visible:outline-none sm:px-6 md:flex-row md:items-center md:gap-5"
       >
-        <div className="flex items-center gap-4 md:w-[42%]">
-          <Plate rego={c.rego} />
-          <div className="min-w-0">
-            <p className="truncate font-bold text-ink">{vehicleTitle(c)}</p>
-            <p className="mt-0.5 flex items-center gap-1 text-sm text-muted">
-              <Gauge className="h-3.5 w-3.5" aria-hidden="true" />
-              {c.odometer_km != null ? `${formatKm(c.odometer_km)} km` : "Odometer not given"}
-            </p>
-          </div>
+        <div className="min-w-0 md:w-[38%]">
+          <p className="flex flex-wrap items-center gap-2 font-bold text-ink">
+            {c.customer_name}
+            {unread && <span className="h-2 w-2 rounded-full bg-primary" aria-label="Unread" />}
+            {returning && <ReturningBadge />}
+          </p>
+          <p className="mt-0.5 flex flex-wrap gap-x-4 gap-y-0.5 text-sm text-muted">
+            <span className="inline-flex items-center gap-1">
+              <Phone className="h-3.5 w-3.5" aria-hidden="true" />
+              {formatAuPhone(c.phone)}
+            </span>
+            <span className="inline-flex min-w-0 items-center gap-1">
+              <Mail className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+              <span className="truncate">{c.email}</span>
+            </span>
+          </p>
         </div>
         <div className="min-w-0 flex-1 text-sm">
           <p className="flex flex-wrap items-center gap-2 font-semibold text-ink">
-            {c.first_name} {c.last_name}
-            {unread && <span className="h-2 w-2 rounded-full bg-primary" aria-label="Unread" />}
-            {returning && <ReturningBadge />}
-            {c.assigned_to && (
-              <span className="inline-flex items-center gap-1 whitespace-nowrap rounded-full bg-blue-50 px-2.5 py-1 text-xs font-semibold text-blue-800">
-                <HardHat className="h-3.5 w-3.5" aria-hidden="true" />
-                {c.assigned_to}
-              </span>
-            )}
-            {jobNos?.map((n) => (
-              <span key={n} className="inline-flex items-center gap-1 whitespace-nowrap rounded-full bg-slate-100 px-2.5 py-1 font-mono text-xs font-semibold text-slate-700">
-                <ClipboardList className="h-3.5 w-3.5" aria-hidden="true" />
-                {n}
-              </span>
-            ))}
+            <Car className="h-4 w-4 shrink-0 text-muted" aria-hidden="true" />
+            {vehicleTitle(c)}
+            <JobTypeBadge type={c.job_type} />
           </p>
-          <p className="mt-0.5 flex flex-wrap gap-x-4 gap-y-0.5 text-muted">
-            <span className="inline-flex items-center gap-1">
-              <Phone className="h-3.5 w-3.5" aria-hidden="true" />
-              {c.phone}
-            </span>
-            {c.email && (
-              <span className="inline-flex min-w-0 items-center gap-1">
-                <Mail className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-                <span className="truncate">{c.email}</span>
-              </span>
-            )}
-          </p>
+          {(c.insurance_company || c.claim_number) && (
+            <p className="mt-0.5 flex flex-wrap gap-x-3 text-muted">
+              {c.insurance_company && <span>{c.insurance_company}</span>}
+              {c.claim_number && <span className="font-mono">Claim #{c.claim_number}</span>}
+            </p>
+          )}
+          {c.damage_description && (
+            <p className="mt-0.5 flex min-w-0 items-center gap-1 text-muted">
+              <FileText className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+              <span className="truncate">{c.damage_description}</span>
+            </p>
+          )}
         </div>
         <div className="flex items-center justify-between gap-3 md:w-[210px] md:justify-end">
           <StatusPill status={c.status} />
@@ -324,7 +310,7 @@ function StatCard({
 }) {
   const tones = {
     ink: "bg-slate-100 text-slate-700",
-    blue: "bg-blue-50 text-primary",
+    blue: "bg-primary/10 text-primary",
     amber: "bg-amber-50 text-amber-600",
     green: "bg-emerald-50 text-emerald-600",
   };

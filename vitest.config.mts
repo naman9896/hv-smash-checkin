@@ -7,7 +7,10 @@ import { defineConfig } from "vitest/config";
 //         The global setup refuses to run against production (tests/support/env-guard.ts).
 export default defineConfig({
   resolve: {
-    alias: { "@": fileURLToPath(new URL("./src", import.meta.url)) },
+    alias: {
+      "@config": fileURLToPath(new URL("./config", import.meta.url)),
+      "@": fileURLToPath(new URL("./src", import.meta.url)),
+    },
   },
   test: {
     environment: "node",

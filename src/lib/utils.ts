@@ -5,33 +5,41 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-/** Strip everything but digits; convert +61 to a leading 0. */
-export function normaliseAuMobile(raw: string): string {
+/** Digits only, national format: "+61 412 345 678" → "0412345678", "(02) 4932 4551" → "0249324551". */
+export function normaliseAuPhone(raw: string): string {
   let d = raw.replace(/\D/g, "");
   if (d.startsWith("61")) d = "0" + d.slice(2);
+  if (d.startsWith("00")) d = d.slice(1); // +61 (0)4… typed with the trunk zero
   return d;
 }
 
-/** AU mobile: 04xx xxx xxx (10 digits starting 04). */
-export function isValidAuMobile(raw: string): boolean {
-  return /^04\d{8}$/.test(normaliseAuMobile(raw));
+/** Australian mobile (04/05) or landline (02, 03, 07, 08): 10 digits. */
+export function isValidAuPhone(raw: string): boolean {
+  return /^0[2-578]\d{8}$/.test(normaliseAuPhone(raw));
 }
 
-/** Format as you type: 0412 345 678 */
-export function formatAuMobile(raw: string): string {
-  const d = normaliseAuMobile(raw).slice(0, 10);
-  if (d.length <= 4) return d;
-  if (d.length <= 7) return `${d.slice(0, 4)} ${d.slice(4)}`;
-  return `${d.slice(0, 4)} ${d.slice(4, 7)} ${d.slice(7)}`;
+const isMobile = (d: string) => /^0[45]/.test(d);
+
+/** Format as you type / for display: mobiles 0412 345 678, landlines 02 4932 4551. */
+export function formatAuPhone(raw: string): string {
+  const d = normaliseAuPhone(raw).slice(0, 10);
+  if (isMobile(d) || d.length < 2) {
+    if (d.length <= 4) return d;
+    if (d.length <= 7) return `${d.slice(0, 4)} ${d.slice(4)}`;
+    return `${d.slice(0, 4)} ${d.slice(4, 7)} ${d.slice(7)}`;
+  }
+  if (d.length <= 2) return d;
+  if (d.length <= 6) return `${d.slice(0, 2)} ${d.slice(2)}`;
+  return `${d.slice(0, 2)} ${d.slice(2, 6)} ${d.slice(6)}`;
+}
+
+/** "Mobile" or "Phone" for a stored number. */
+export function phoneLabel(p: string): string {
+  return isMobile(normaliseAuPhone(p)) ? "Mobile" : "Phone";
 }
 
 export function isValidEmail(v: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v.trim());
-}
-
-export function formatKm(n: number | null | undefined): string {
-  if (n === null || n === undefined || Number.isNaN(n)) return "";
-  return new Intl.NumberFormat("en-AU").format(n);
 }
 
 export function formatDateTime(iso: string | null | undefined): string {
@@ -55,9 +63,8 @@ export function timeAgo(iso: string): string {
   return formatDateTime(iso);
 }
 
-export function vehicleTitle(c: { year: number | null; make: string; model: string; colour: string | null }) {
-  const base = [c.year, c.make, c.model].filter(Boolean).join(" ");
-  return c.colour ? `${base} · ${c.colour}` : base;
+export function vehicleTitle(c: { year: number | null; make: string; model: string }) {
+  return [c.year, c.make, c.model].filter(Boolean).join(" ");
 }
 
 export function formatDate(iso: string | null | undefined): string {
@@ -96,5 +103,5 @@ export function dayInputBounds(from?: string, to?: string): { from: Date | null;
 }
 
 export function phoneDigits(p: string | null | undefined): string {
-  return normaliseAuMobile(p ?? "");
+  return normaliseAuPhone(p ?? "");
 }

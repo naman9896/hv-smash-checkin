@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label";
 import { checkPassword, verifyPin } from "@/lib/data";
 
 const MAX_PIN_ATTEMPTS = 5;
-const ATTEMPTS_KEY = "smw.lock.attempts";
+const ATTEMPTS_KEY = "checkin.lock.attempts";
 
 /** Auto-lock overlay. PIN unlocks; 5 wrong PINs force a full logout. */
 export function LockScreen({ email, onUnlock, onForceLogout }: { email: string; onUnlock: () => void; onForceLogout: () => void }) {

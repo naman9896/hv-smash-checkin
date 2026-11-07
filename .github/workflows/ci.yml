@@ -1,8 +1,7 @@
-# Runs on both repos (naman9896/sai-motor-checkin and labmotors/saimotorworks-jobs).
-# `checks`, `semgrep` and `gitleaks` need no secrets. `db-e2e` uses the STAGING Supabase secrets,
-# which exist only in naman9896/sai-motor-checkin, so it is skipped everywhere else.
-# Both repos are private without GitHub Code Security / Secret Protection, so static analysis
-# (Semgrep CE) and secret scanning (Gitleaks) run inside CI instead of CodeQL / GitHub scanning.
+# `checks`, `semgrep` and `gitleaks` need no secrets. `db-e2e` uses the STAGING Supabase secrets
+# and only runs when they are configured (repository variable HAS_STAGING_SECRETS = 'true').
+# Static analysis (Semgrep CE) and secret scanning (Gitleaks) run inside CI, so no paid
+# GitHub Code Security / Secret Protection is needed.
 name: CI
 
 on:
@@ -65,7 +64,7 @@ jobs:
           fetch-depth: 0 # scan the whole history, not just the last commit
           persist-credentials: false
       # Official release binary, checked against a pinned SHA-256 (the gitleaks GitHub Action
-      # needs a paid licence key on organisation repos such as labmotors).
+      # needs a paid licence key on organisation repos).
       - name: Install gitleaks 8.30.1
         run: |
           curl -sSfL -o "$RUNNER_TEMP/gitleaks.tgz" \
@@ -78,8 +77,8 @@ jobs:
   db-e2e:
     name: DB integration + E2E (staging)
     needs: checks
-    # Only on the dev repo, and not for Dependabot PRs (they can't read Actions secrets).
-    if: github.repository == 'naman9896/sai-motor-checkin' && github.actor != 'dependabot[bot]'
+    # Only where the staging secrets exist, and not for Dependabot PRs (they can't read Actions secrets).
+    if: vars.HAS_STAGING_SECRETS == 'true' && github.actor != 'dependabot[bot]'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:

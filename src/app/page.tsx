@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { ArrowRight, ClipboardList, LayoutGrid, Lock, Tablet } from "lucide-react";
+import { ArrowRight, LayoutGrid, Lock, Tablet } from "lucide-react";
+import { business } from "@config/business";
 import { Logo } from "@/components/logo";
 import { cn } from "@/lib/utils";
 
@@ -7,26 +8,17 @@ const portals = [
   {
     href: "/kiosk",
     title: "Customer iPad Form",
-    description: "The front-counter check-in form. Customers enter their contact and vehicle details in about a minute.",
-    chips: ["Touch friendly", "Quick make picker"],
+    description: "The front-counter check-in form. Customers enter their details, describe the damage and sign.",
+    chips: ["Touch friendly", "Digital signature"],
     cta: "Launch iPad Kiosk",
     Icon: Tablet,
     accent: "blue" as const,
   },
   {
-    href: "/jobs",
-    title: "Staff Job Sheet",
-    description: "For the workshop team. Unlock with the staff PIN, then record the job, work carried out, faults found and parts used.",
-    chips: ["Staff PIN", "Parts & work done"],
-    cta: "Open Job Sheet",
-    Icon: ClipboardList,
-    accent: "amber" as const,
-  },
-  {
     href: "/dashboard",
     title: "Owner Dashboard",
-    description: "Every check-in the moment it's submitted. Search, update job status, add notes and print a job sheet.",
-    chips: ["Real-time updates", "Search & filters", "Print job sheets"],
+    description: "Every check-in the moment it's submitted. Search, update status, copy details, add notes and print.",
+    chips: ["Real-time updates", "Search & filters", "One-tap copy"],
     cta: "Enter Owner Dashboard",
     Icon: LayoutGrid,
     accent: "green" as const,
@@ -34,26 +26,28 @@ const portals = [
 ];
 
 const ACCENT = {
-  blue: { card: "border-primary/30 hover:border-primary focus-visible:ring-primary/40", icon: "bg-primary/15 text-[#5B92FF]", cta: "bg-primary group-hover:bg-primary-hover text-white" },
-  amber: { card: "border-plate/30 hover:border-plate focus-visible:ring-plate/40", icon: "bg-plate/15 text-plate", cta: "bg-plate group-hover:bg-amber-300 text-navy" },
+  blue: { card: "border-primary/40 hover:border-primary focus-visible:ring-primary/40", icon: "bg-primary/25 text-white", cta: "bg-primary group-hover:bg-primary-hover text-white" },
   green: { card: "border-success/30 hover:border-success focus-visible:ring-success/40", icon: "bg-success/15 text-success", cta: "bg-success group-hover:bg-emerald-600 text-white" },
 };
 
 export default function PortalPage() {
   return (
-    <main className="flex min-h-screen flex-col bg-navy text-white">
+    <main className="flex min-h-screen flex-col border-t-4 border-primary bg-navy text-white">
       <header className="mx-auto flex w-full max-w-6xl items-center justify-between gap-4 px-5 pt-8 sm:px-8">
         <div className="flex items-center gap-4">
-          <Logo className="h-14 sm:h-16" />
-          <p className="hidden border-l border-white/15 pl-4 text-sm text-slate-400 sm:block">Digital Customer Check-in System</p>
+          <Logo className="h-20 sm:h-24" />
+          <div className="hidden border-l border-white/15 pl-4 sm:block">
+            <p className="font-semibold">{business.name}</p>
+            <p className="text-sm text-slate-400">Digital Customer Check-in</p>
+          </div>
         </div>
       </header>
 
       <section className="mx-auto flex w-full max-w-6xl flex-1 flex-col justify-center px-5 py-14 sm:px-8">
-        <p className="text-center text-sm font-semibold uppercase tracking-[0.18em] text-slate-400">Rutherford, NSW</p>
+        <p className="text-center text-sm font-semibold uppercase tracking-[0.18em] text-slate-400">{business.location}</p>
         <h1 className="mt-3 text-center text-3xl font-bold tracking-tight sm:text-[42px]">Select Your Workspace Portal</h1>
 
-        <div className="mt-12 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        <div className="mx-auto mt-12 grid w-full max-w-4xl gap-6 md:grid-cols-2">
           {portals.map(({ href, title, description, chips, cta, Icon, accent }) => (
             <Link
               key={href}
@@ -98,7 +92,9 @@ export default function PortalPage() {
 
       <footer className="border-t border-white/10">
         <div className="mx-auto flex w-full max-w-6xl flex-wrap items-center justify-between gap-3 px-5 py-5 text-sm text-slate-400 sm:px-8">
-          <span>Sai Motor Works · Expert care for your car</span>
+          <span>
+            {business.name} · {business.tagline}
+          </span>
           <Link href="/login" className="inline-flex items-center gap-1.5 font-semibold text-slate-200 hover:text-white">
             <Lock className="h-4 w-4" aria-hidden="true" />
             Staff Login

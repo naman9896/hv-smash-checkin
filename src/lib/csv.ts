@@ -1,20 +1,20 @@
-import { STATUS_LABEL, type Checkin } from "./types";
+import { JOB_TYPE_LABEL, STATUS_LABEL, type Checkin } from "./types";
 
 const COLUMNS: [string, (c: Checkin) => string | number | null | undefined][] = [
   ["Reference", (c) => c.reference_no],
   ["Checked in", (c) => new Date(c.created_at).toLocaleString("en-AU")],
   ["Status", (c) => STATUS_LABEL[c.status]],
-  ["First name", (c) => c.first_name],
-  ["Last name", (c) => c.last_name],
-  ["Mobile", (c) => c.phone],
+  ["Name", (c) => c.customer_name],
+  ["Phone", (c) => c.phone],
   ["Email", (c) => c.email],
-  ["Rego", (c) => c.rego],
   ["Make", (c) => c.make],
   ["Model", (c) => c.model],
   ["Year", (c) => c.year],
-  ["Colour", (c) => c.colour],
-  ["Odometer (km)", (c) => c.odometer_km],
-  ["Submitted at", (c) => (c.signed_at ? new Date(c.signed_at).toLocaleString("en-AU") : "")],
+  ["Job type", (c) => (c.job_type ? JOB_TYPE_LABEL[c.job_type] : "")],
+  ["Insurance company", (c) => c.insurance_company],
+  ["Claim number", (c) => c.claim_number],
+  ["Damage description", (c) => c.damage_description],
+  ["Signed at", (c) => new Date(c.signed_at).toLocaleString("en-AU")],
   ["Returning customer", (c) => (c.returning_customer ? "Yes" : "No")],
   ["Archived", (c) => (c.is_archived ? "Yes" : "No")],
   ["Internal notes", (c) => c.internal_notes],

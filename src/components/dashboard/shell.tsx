@@ -11,9 +11,6 @@ import {
   getOwnerEmail,
   getSettings,
   listCheckins,
-  listJobs,
-  subscribeJobs,
-  updateJob,
   runAutoArchive,
   signOut,
   subscribeCheckins,
@@ -23,12 +20,11 @@ import {
   type LiveStatus,
 } from "@/lib/data";
 import { getSupabase } from "@/lib/supabase";
-import type { Checkin, Job, Settings } from "@/lib/types";
-import { listUnreadBookings, markBookingsRead, subscribeBookings, type UnreadBooking } from "@/lib/booking/owner-data";
-import { formatDay, formatWindow } from "@/lib/booking/format";
+import type { Checkin, Settings } from "@/lib/types";
+import { business } from "@config/business";
 import { vehicleTitle } from "@/lib/utils";
 
-const LOCK_KEY = "smw.locked";
+export const LOCK_KEY = "checkin.locked";
 
 interface DashboardContext {
   email: string;
@@ -52,16 +48,6 @@ interface DashboardContext {
   /** Open a check-in: the drawer on /dashboard, otherwise its own page. */
   selectedId: string | null;
   openCheckin: (id: string | null) => void;
-  /** Workshop jobs (staff job sheets), newest first. */
-  jobs: Job[];
-  jobsLoading: boolean;
-  upsertJob: (j: Job) => void;
-  removeJob: (id: string) => void;
-  unreadJobs: Job[];
-  markJobRead: (id: string) => void;
-  /** Bookings the owner hasn't opened yet (nav badge). */
-  unreadBookings: UnreadBooking[];
-  markBookingRead: (id: string) => void;
   lock: () => void;
   logout: () => Promise<void>;
 }
@@ -87,9 +73,6 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
   const [fresh, setFresh] = useState<Set<string>>(new Set());
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [locked, setLocked] = useState(false);
-  const [jobs, setJobs] = useState<Job[]>([]);
-  const [jobsLoading, setJobsLoading] = useState(true);
-  const [unreadBookings, setUnreadBookings] = useState<UnreadBooking[]>([]);
   const seen = useRef<Set<string>>(new Set());
   const lastActivity = useRef(0);
   const settingsRef = useRef<Settings | null>(null);
@@ -145,61 +128,14 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  const fetchJobs = useCallback(async () => {
-    try {
-      const data = await listJobs();
-      data.forEach((j) => seen.current.add(j.id));
-      setJobs(data);
-    } catch (e) {
-      toast.error("Couldn't load jobs", { description: e instanceof Error ? e.message : undefined });
-    } finally {
-      setJobsLoading(false);
-    }
-  }, []);
-
-  const fetchUnreadBookings = useCallback(async () => {
-    try {
-      setUnreadBookings(await listUnreadBookings());
-    } catch {
-      /* the badge is a convenience; the Bookings tab shows its own errors */
-    }
-  }, []);
-
   const refresh = useCallback(async () => {
     setRefreshing(true);
-    await Promise.all([fetchRows(showArchivedRef.current), fetchJobs(), fetchUnreadBookings()]);
-  }, [fetchRows, fetchJobs, fetchUnreadBookings]);
+    await fetchRows(showArchivedRef.current);
+  }, [fetchRows]);
 
   useEffect(() => {
     if (!email) return;
-    let cancelled = false;
-    listJobs()
-      .then((data) => {
-        if (cancelled) return;
-        data.forEach((j) => seen.current.add(j.id));
-        setJobs(data);
-      })
-      .catch((e) => toast.error("Couldn't load jobs", { description: e instanceof Error ? e.message : undefined }))
-      .finally(() => !cancelled && setJobsLoading(false));
-    return () => {
-      cancelled = true;
-    };
-  }, [email]);
-
-  useEffect(() => {
-    if (!email) return;
-    let cancelled = false;
-    listUnreadBookings()
-      .then((b) => !cancelled && setUnreadBookings(b))
-      .catch(() => {});
-    return () => {
-      cancelled = true;
-    };
-  }, [email]);
-
-  useEffect(() => {
-    if (!email) return;
-    // Archive old completed jobs first (no-op unless enabled in Settings → Data)
+    // Archive old completed check-ins first (no-op unless enabled in Settings → Data)
     runAutoArchive()
       .catch(() => 0)
       .finally(() => fetchRows(showArchived));
@@ -235,14 +171,14 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
           );
           const s = settingsRef.current;
           if (s?.sound_enabled) playChime(s.chime);
-          toast.info(`New check-in: ${c.first_name} ${c.last_name} – ${c.rego}`, {
+          toast.info(`New check-in: ${c.customer_name}`, {
             description: vehicleTitle(c),
             action: { label: "Open", onClick: () => openCheckin(c.id) },
           });
           if (s?.browser_notifications && typeof Notification !== "undefined" && Notification.permission === "granted") {
             try {
-              const n = new Notification("New check-in – Sai Motor Works", {
-                body: `${c.first_name} ${c.last_name} · ${c.rego} · ${c.make} ${c.model}`,
+              const n = new Notification(`New check-in – ${business.name}`, {
+                body: `${c.customer_name} · ${vehicleTitle(c)}`,
                 tag: c.id,
                 icon: "/icon-192.png",
               });
@@ -266,60 +202,16 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
         // Catch up on anything missed while the socket was down
         if (liveRef.current === "reconnecting" && s === "live") {
           fetchRows(showArchivedRef.current);
-          fetchJobs();
-          fetchUnreadBookings();
         }
         liveRef.current = s;
         setLive(s);
       },
     );
-    const unsubJobs = subscribeJobs({
-      onInsert: (j) => {
-        if (seen.current.has(j.id)) return;
-        seen.current.add(j.id);
-        setJobs((r) => [j, ...r.filter((x) => x.id !== j.id)]);
-        setFresh((f) => new Set(f).add(j.id));
-        setTimeout(
-          () =>
-            setFresh((f) => {
-              const n = new Set(f);
-              n.delete(j.id);
-              return n;
-            }),
-          4000,
-        );
-        const s = settingsRef.current;
-        if (s?.sound_enabled) playChime(s.chime);
-        toast.info(`New job ${j.job_no}: ${j.rego} – ${j.employee_name}`, {
-          description: [j.customer_name, `${j.make}${j.model ? ` ${j.model}` : ""}`].filter(Boolean).join(" · "),
-          action: { label: "Open", onClick: () => router.push(`/dashboard/jobs/${j.id}`) },
-        });
-      },
-      onUpdate: (j) => setJobs((r) => (r.some((x) => x.id === j.id) ? r.map((x) => (x.id === j.id ? j : x)) : [j, ...r])),
-      onDelete: (id) => setJobs((r) => r.filter((x) => x.id !== id)),
-    });
-    const unsubBookings = subscribeBookings({
-      onInsert: (b) => {
-        if (!b.is_read) setUnreadBookings((r) => [b, ...r.filter((x) => x.id !== b.id)]);
-        if (b.source !== "online") return; // chime only for customers booking online (owner adds them himself)
-        const s = settingsRef.current;
-        if (s?.sound_enabled) playChime(s.chime);
-        toast.info(`New booking: ${b.first_name} ${b.last_name} – ${b.rego}`, {
-          description: `${formatDay(b.drop_off_date)}, drop off ${formatWindow(b.window_start, b.window_end)}`,
-          action: { label: "Open", onClick: () => router.push(`/dashboard/bookings/${b.id}`) },
-        });
-      },
-      // A customer cancelling / moving from their link sets is_read = false again (T7)
-      onUpdate: (b) => setUnreadBookings((r) => [...(b.is_read ? [] : [b]), ...r.filter((x) => x.id !== b.id)]),
-      onDelete: (id) => setUnreadBookings((r) => r.filter((x) => x.id !== id)),
-    });
     return () => {
       unsub();
-      unsubJobs();
       unsubSettings();
-      unsubBookings();
     };
-  }, [email, openCheckin, fetchRows, fetchJobs, fetchUnreadBookings, router]);
+  }, [email, openCheckin, fetchRows]);
 
   /* ---------- auto-lock ---------- */
   const lock = useCallback(() => {
@@ -378,20 +270,6 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
   }, []);
   const removeRows = useCallback((ids: string[]) => setRows((r) => r.filter((x) => !ids.includes(x.id))), []);
 
-  const upsertJob = useCallback((j: Job) => {
-    setJobs((r) => (r.some((x) => x.id === j.id) ? r.map((x) => (x.id === j.id ? j : x)) : [j, ...r]));
-  }, []);
-  const removeJob = useCallback((id: string) => setJobs((r) => r.filter((x) => x.id !== id)), []);
-  const markBookingRead = useCallback((id: string) => {
-    setUnreadBookings((r) => r.filter((x) => x.id !== id));
-    markBookingsRead([id]).catch(() => {});
-  }, []);
-  const unreadJobs = useMemo(() => jobs.filter((j) => !j.is_read), [jobs]);
-  const markJobRead = useCallback((id: string) => {
-    setJobs((r) => r.map((x) => (x.id === id && !x.is_read ? { ...x, is_read: true } : x)));
-    updateJob(id, { is_read: true }).catch(() => {});
-  }, []);
-
   if (!email || !settings) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-page">
@@ -419,14 +297,6 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
     markAllAsRead,
     selectedId,
     openCheckin,
-    jobs,
-    jobsLoading,
-    upsertJob,
-    removeJob,
-    unreadJobs,
-    markJobRead,
-    unreadBookings,
-    markBookingRead,
     lock,
     logout,
   };

@@ -1,8 +1,9 @@
 import { cn } from "@/lib/utils";
-import { STATUS_LABEL, type CheckinStatus } from "@/lib/types";
+import { Briefcase, ShieldCheck } from "lucide-react";
+import { JOB_TYPE_LABEL, STATUS_LABEL, type CheckinStatus, type JobType } from "@/lib/types";
 
 const STATUS_STYLE: Record<CheckinStatus, string> = {
-  new: "bg-blue-50 text-blue-700 ring-blue-200",
+  new: "bg-primary/10 text-primary ring-primary/25",
   in_progress: "bg-amber-50 text-amber-800 ring-amber-200",
   completed: "bg-emerald-50 text-emerald-700 ring-emerald-200",
   cancelled: "bg-slate-100 text-slate-600 ring-slate-200",
@@ -29,19 +30,26 @@ export function StatusPill({ status, className }: { status: CheckinStatus; class
   );
 }
 
-/** Yellow NSW-style number plate. */
-export function Plate({ rego, size = "md" }: { rego: string; size?: "md" | "lg" }) {
+/** "Insurance" / "Private" badge. Nothing when the customer didn't say. */
+export function JobTypeBadge({ type, dark, className }: { type: JobType | null; dark?: boolean; className?: string }) {
+  if (!type) return null;
+  const Icon = type === "insurance" ? ShieldCheck : Briefcase;
   return (
     <span
       className={cn(
-        "inline-flex flex-col items-center justify-center rounded-[8px] border-2 border-slate-900 bg-plate font-mono font-bold leading-none tracking-[0.12em] text-slate-900 shadow-[inset_0_0_0_2px_#FACC15,inset_0_0_0_3px_rgb(15_23_42/0.35)]",
-        size === "md" ? "h-11 min-w-[104px] px-2.5 text-[17px]" : "h-16 min-w-[160px] px-4 text-[26px]",
+        "inline-flex items-center gap-1 whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-semibold",
+        type === "insurance"
+          ? dark
+            ? "bg-white/15 text-white"
+            : "bg-primary/10 text-primary ring-1 ring-inset ring-primary/25"
+          : dark
+            ? "bg-white/10 text-slate-200"
+            : "bg-slate-100 text-slate-700 ring-1 ring-inset ring-slate-200",
+        className,
       )}
     >
-      <span className={cn("font-sans font-bold tracking-[0.2em] text-slate-700", size === "md" ? "text-[7px] mb-0.5" : "text-[9px] mb-1")}>
-        NSW
-      </span>
-      {rego}
+      <Icon className="h-3.5 w-3.5" aria-hidden="true" />
+      {JOB_TYPE_LABEL[type]}
     </span>
   );
 }

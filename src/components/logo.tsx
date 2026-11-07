@@ -1,41 +1,37 @@
 "use client";
 
 import { useState } from "react";
-import { useBrand } from "@/components/brand-provider";
+import { business } from "@config/business";
 import { cn } from "@/lib/utils";
 
 /**
- * The one logo component used everywhere.
- * Priority: logo uploaded in Settings → /public/logo.png → text "Sai Motor Works".
- * `tone` picks the built-in artwork for dark (navy) or light (white) backgrounds.
+ * The one logo component used everywhere (config/business.ts → logo).
+ * Falls back to the business name as text if the image can't load.
+ * `tone` sets the fallback text colour for dark or light backgrounds.
  */
 export function Logo({ tone = "dark", className }: { tone?: "dark" | "light"; className?: string }) {
-  const { logoUrl, businessName } = useBrand();
-  const fallback = tone === "dark" ? "/logo.png" : "/logo-on-light.png";
-  const candidates = logoUrl ? [logoUrl, fallback] : [fallback];
-  const [failed, setFailed] = useState<string[]>([]);
-  const src = candidates.find((c) => !failed.includes(c));
+  const [failed, setFailed] = useState(false);
 
-  if (!src) {
+  if (failed) {
     return (
       <span
         className={cn(
-          "inline-flex items-center font-extrabold italic leading-none tracking-tight",
+          "inline-flex items-center font-extrabold leading-none tracking-tight",
           tone === "dark" ? "text-white" : "text-ink",
           className,
         )}
       >
-        {businessName}
+        {business.name}
       </span>
     );
   }
   return (
     // eslint-disable-next-line @next/next/no-img-element
     <img
-      src={src}
-      alt={businessName}
+      src={business.logo.src}
+      alt={business.logo.alt}
       className={cn("h-11 w-auto object-contain", className)}
-      onError={() => setFailed((f) => [...f, src])}
+      onError={() => setFailed(true)}
       decoding="async"
     />
   );

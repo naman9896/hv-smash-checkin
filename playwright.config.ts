@@ -1,12 +1,8 @@
-import { randomUUID } from "node:crypto";
 import { defineConfig, devices } from "@playwright/test";
 import { requireTestTarget } from "./tests/support/env-guard";
 
 // Refuse to start (and so never boot the app) unless the TEST_* vars point at staging.
 const target = requireTestTarget();
-
-// A fresh secret per run, so the E2E cron tests can call the cron routes (staging, SMS_MODE=log).
-export const E2E_CRON_SECRET = process.env.E2E_CRON_SECRET ??= `e2e-${randomUUID()}`;
 
 const PORT = 3100; // not 3000: never reuse a dev server that may be pointed at production
 const baseURL = `http://localhost:${PORT}`;
@@ -35,10 +31,6 @@ export default defineConfig({
       NODE_ENV: "test",
       NEXT_PUBLIC_SUPABASE_URL: target.url,
       NEXT_PUBLIC_SUPABASE_ANON_KEY: target.anonKey,
-      SUPABASE_SERVICE_ROLE_KEY: target.serviceRoleKey,
-      SMS_MODE: "log",
-      CRON_SECRET: E2E_CRON_SECRET,
-      PUBLIC_BASE_URL: baseURL,
     },
   },
 });

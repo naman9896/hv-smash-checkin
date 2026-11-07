@@ -24,7 +24,7 @@ export default function LoginPage() {
     setBusy(true);
     try {
       await signIn(email.trim(), password);
-      sessionStorage.removeItem("smw.locked");
+      sessionStorage.removeItem("checkin.locked");
       const next = new URLSearchParams(window.location.search).get("next");
       // Full page load: the client router may hold a pre-login prefetch of /dashboard (a redirect)
       // Semgrep false positive (reviewed 2026-11-05): `next` must start with "/dashboard", so it is

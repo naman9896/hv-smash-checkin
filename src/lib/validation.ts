@@ -1,41 +1,125 @@
 import { z } from "zod";
-import type { KioskSettings } from "./types";
-import { isValidAuMobile } from "./utils";
+import type { CheckinInput } from "./types";
+import { isValidAuPhone, normaliseAuPhone } from "./utils";
 
-/** Kiosk form schema. Hidden fields (per Settings) are not validated. */
-export function kioskSchema(s: Pick<KioskSettings, "show_year" | "email_required">) {
-  const thisYear = new Date().getFullYear();
-  const email = z.string().trim();
-  return z.object({
-    first_name: z.string().trim().min(1, "Please enter your first name").max(80),
-    last_name: z.string().trim().min(1, "Please enter your last name").max(80),
+/* ------------------------------------------------------------------ */
+/* Kiosk check-in                                                      */
+/* One schema for both sides: the kiosk validates with                 */
+/* `checkinFormSchema`, the /api/checkin route with                    */
+/* `checkinRequestSchema` (the same fields plus the signature).        */
+/* The database checks everything again (kiosk_submit_checkin).        */
+/* ------------------------------------------------------------------ */
+
+export const MIN_YEAR = 1950;
+export const maxYear = () => new Date().getFullYear() + 1;
+
+export const LIMITS = {
+  customer_name: 120,
+  email: 254,
+  make: 60,
+  model: 80,
+  insurance_company: 120,
+  claim_number: 60,
+  damage_description: 500,
+} as const;
+
+/** Biggest signature PNG we accept (bytes). Matches the `signatures` bucket limit. */
+export const SIGNATURE_MAX_BYTES = 512 * 1024;
+
+/** What the kiosk form holds: every field is a string while the customer types. */
+export interface CheckinFormValues {
+  customer_name: string;
+  email: string;
+  phone: string;
+  make: string;
+  model: string;
+  year: string;
+  job_type: "" | "insurance" | "private";
+  insurance_company: string;
+  claim_number: string;
+  damage_description: string;
+}
+
+const required = (max: number, empty: string, tooLong: string) => z.string().trim().min(1, empty).max(max, tooLong);
+const optional = (max: number, tooLong: string) =>
+  z
+    .string()
+    .trim()
+    .max(max, tooLong)
+    .transform((v) => v || null);
+
+function fields() {
+  const top = maxYear();
+  return {
+    customer_name: required(LIMITS.customer_name, "Please enter your full name", "Name is too long"),
+    email: z
+      .string()
+      .trim()
+      .toLowerCase()
+      .min(1, "Please enter your email address")
+      .max(LIMITS.email, "Email is too long")
+      .pipe(z.email("Enter a valid email, e.g. name@example.com")),
     phone: z
       .string()
       .trim()
-      .min(1, "Please enter your mobile number")
-      .refine(isValidAuMobile, "Enter a valid Australian mobile, e.g. 0412 345 678"),
-    email: s.email_required
-      ? email.min(1, "Please enter your email address").pipe(z.email("Enter a valid email, e.g. name@example.com"))
-      : email.refine((v) => v === "" || z.email().safeParse(v).success, "Enter a valid email, e.g. name@example.com"),
-    make: z.string().trim().min(1, "Please select the vehicle make").max(60),
-    model: z.string().trim().min(1, "Please enter the vehicle model").max(80),
-    year: s.show_year
-      ? z
-          .string()
-          .refine(
-            (v) => v === "" || (Number(v) >= 1950 && Number(v) <= thisYear + 1),
-            `Enter a year between 1950 and ${thisYear + 1}`,
-          )
-      : z.string(),
-    rego: z
+      .min(1, "Please enter your phone number")
+      .refine(isValidAuPhone, "Enter a valid Australian number, e.g. 0412 345 678 or 02 4932 4551")
+      .transform(normaliseAuPhone),
+    make: required(LIMITS.make, "Please enter the vehicle make", "Make is too long"),
+    model: required(LIMITS.model, "Please enter the vehicle model", "Model is too long"),
+    year: z
       .string()
       .trim()
-      .min(1, "Please enter the registration")
-      .regex(/^[A-Z0-9]{1,7}$/, "Letters and numbers only, up to 7 characters"),
-    colour: z.string().max(40),
-    odometer: z.string().regex(/^\d{0,7}$/, "Numbers only"),
-  });
+      .refine((v) => v === "" || (/^\d{4}$/.test(v) && Number(v) >= MIN_YEAR && Number(v) <= top), `Enter a year between ${MIN_YEAR} and ${top}`)
+      .transform((v) => (v === "" ? null : Number(v))),
+    job_type: z.enum(["", "insurance", "private"], "Choose Insurance or Private").transform((v) => v || null),
+    insurance_company: optional(LIMITS.insurance_company, "Insurance company is too long"),
+    claim_number: optional(LIMITS.claim_number, "Claim number is too long"),
+    damage_description: optional(LIMITS.damage_description, `Keep the description to ${LIMITS.damage_description} characters`),
+  };
 }
+
+/** Insurance details only make sense for an insurance job: drop them otherwise. */
+function clearInsurance<T extends { job_type: string | null; insurance_company: string | null; claim_number: string | null }>(v: T): T {
+  return v.job_type === "insurance" ? v : { ...v, insurance_company: null, claim_number: null };
+}
+
+/** Kiosk form (client). Output is the clean `CheckinInput`. */
+export function checkinFormSchema() {
+  return z
+    .object(fields())
+    .strict()
+    .transform((v): CheckinInput => clearInsurance(v));
+}
+
+const signature = z
+  .string("Please sign in the box")
+  .min(1, "Please sign in the box")
+  // base64 grows by 4/3; allow a little for the data-URL prefix
+  .max(Math.ceil((SIGNATURE_MAX_BYTES * 4) / 3) + 64, "The signature is too large")
+  .regex(/^data:image\/png;base64,[A-Za-z0-9+/]+={0,2}$/, "Please sign in the box");
+
+/** POST /api/checkin body: the form fields plus the signature as a PNG data URL. */
+export function checkinRequestSchema() {
+  return z
+    .object({ ...fields(), signature })
+    .strict()
+    .transform(({ signature, ...v }) => ({ input: clearInsurance(v) as CheckinInput, signature }));
+}
+
+/** First message per field, for inline errors. */
+export function fieldErrors(error: z.ZodError): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const issue of error.issues) {
+    const k = String(issue.path[0] ?? "form");
+    out[k] ??= issue.message;
+  }
+  return out;
+}
+
+/* ------------------------------------------------------------------ */
+/* Owner                                                               */
+/* ------------------------------------------------------------------ */
 
 export const pinSchema = z.string().regex(/^\d{4,6}$/, "PIN must be 4–6 digits");
 
@@ -50,38 +134,4 @@ export function passwordStrength(pw: string): { score: number; label: string } {
   if (/\d/.test(pw) && /[^A-Za-z0-9]/.test(pw)) score++;
   if (pw.length < 8) score = Math.min(score, 1);
   return { score, label: ["Too short", "Weak", "Fair", "Good", "Strong"][score] };
-}
-
-/**
- * Job sheet checks. Returns field → message.
- * Staff must give model and KMs; the owner can save older jobs without them.
- */
-export function validateJob(
-  j: {
-    employee_name: string;
-    phone: string | null;
-    email: string | null;
-    rego: string;
-    make: string;
-    model: string | null;
-    odometer: string | null;
-    year: number | null;
-    vin: string | null;
-    work_items: string[];
-  },
-  mode: "staff" | "owner" = "staff",
-): Record<string, string> {
-  const e: Record<string, string> = {};
-  const thisYear = new Date().getFullYear();
-  if (!j.employee_name.trim()) e.employee_name = "Choose your name";
-  if (j.phone?.trim() && !/^[\d\s+()-]{8,20}$/.test(j.phone.trim())) e.phone = "Enter a valid phone number";
-  if (j.email?.trim() && !z.email().safeParse(j.email.trim()).success) e.email = "Enter a valid email";
-  if (!j.rego.trim()) e.rego = "Enter the rego";
-  if (!j.make.trim()) e.make = "Select the vehicle make";
-  if (mode === "staff" && !j.model?.trim()) e.model = "Enter the model";
-  if (mode === "staff" && !j.odometer?.replace(/\D/g, "")) e.odometer = "Enter the KMs";
-  if (j.year != null && (j.year < 1950 || j.year > thisYear + 1)) e.year = `Year between 1950 and ${thisYear + 1}`;
-  if (j.vin?.trim() && j.vin.trim().length > 17) e.vin = "A VIN is 17 characters";
-  if (!j.work_items.some((w) => w.trim())) e.work_items = "Add at least one line of work carried out";
-  return e;
 }

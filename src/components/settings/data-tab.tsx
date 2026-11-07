@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { AlertTriangle, Download, Loader2, Search, Trash2 } from "lucide-react";
 import { toast } from "sonner";
-import { Plate } from "@/components/brand";
+import { business } from "@config/business";
 import { useDashboard } from "@/components/dashboard/shell";
 import { FormField, SaveFooter, selectClass, SettingsCard, useSettingsDraft } from "@/components/settings/common";
 import { Button } from "@/components/ui/button";
@@ -13,7 +13,7 @@ import { checkinsToCsv, downloadCsv } from "@/lib/csv";
 import { deleteCheckins, queryCheckins, runAutoArchive } from "@/lib/data";
 import { ARCHIVE_OPTIONS } from "@/lib/settings";
 import { STATUSES, STATUS_LABEL, type Checkin } from "@/lib/types";
-import { dayInputBounds, formatDate } from "@/lib/utils";
+import { dayInputBounds, formatAuPhone, formatDate, vehicleTitle } from "@/lib/utils";
 
 const KEYS = ["archive_after_months"] as const;
 
@@ -53,7 +53,7 @@ export function DataTab({ onDirty }: { onDirty: (d: boolean) => void }) {
     try {
       const rows = await queryCheckins({ from: b.from?.toISOString(), to: b.to?.toISOString(), status });
       if (!rows.length) return toast.info("No check-ins in that range.");
-      downloadCsv(`sai-motor-works-checkins_${from || "start"}_to_${to || "today"}.csv`, checkinsToCsv(rows));
+      downloadCsv(`${business.shortName.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-checkins_${from || "start"}_to_${to || "today"}.csv`, checkinsToCsv(rows));
       toast.success(`Exported ${rows.length} check-in${rows.length === 1 ? "" : "s"}`);
     } catch (e) {
       toast.error("Export failed", { description: e instanceof Error ? e.message : undefined });
@@ -163,9 +163,9 @@ export function DataTab({ onDirty }: { onDirty: (d: boolean) => void }) {
       >
         <form onSubmit={onSearch} className="flex max-w-xl gap-2">
           <label htmlFor="privacy-search" className="sr-only">
-            Search by name, phone, email or rego
+            Search by name, phone, email or claim number
           </label>
-          <Input id="privacy-search" placeholder="Name, mobile, email or rego" value={search} onChange={(e) => setSearch(e.target.value)} />
+          <Input id="privacy-search" placeholder="Name, phone, email or claim number" value={search} onChange={(e) => setSearch(e.target.value)} />
           <Button type="submit" variant="outline" className="h-12" disabled={searching || search.trim().length < 2}>
             {searching ? <Loader2 className="animate-spin" /> : <Search />} Find
           </Button>
@@ -194,15 +194,12 @@ export function DataTab({ onDirty }: { onDirty: (d: boolean) => void }) {
                             })
                           }
                         />
-                        <Plate rego={r.rego} />
                         <span className="min-w-0 flex-1 text-sm">
-                          <span className="block font-semibold">
-                            {r.first_name} {r.last_name}
-                          </span>
+                          <span className="block font-semibold">{r.customer_name}</span>
                           <span className="block truncate text-muted">
-                            {r.phone}
-                            {r.email ? ` · ${r.email}` : ""}
+                            {formatAuPhone(r.phone)} · {r.email}
                           </span>
+                          <span className="block truncate text-muted">{vehicleTitle(r)}</span>
                         </span>
                         <span className="text-right text-xs text-muted">
                           <span className="block font-mono">{r.reference_no}</span>

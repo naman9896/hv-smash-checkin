@@ -83,7 +83,7 @@ export function SecurityTab({ onDirty }: { onDirty: (d: boolean) => void }) {
 
   async function onLogoutEverywhere() {
     setGlobalBusy(true);
-    sessionStorage.removeItem("smw.locked");
+    sessionStorage.removeItem("checkin.locked");
     await signOut("global");
     window.location.replace("/login");
   }

@@ -2,26 +2,22 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { CalendarDays, ClipboardCheck, ClipboardList, Settings as SettingsIcon } from "lucide-react";
+import { ClipboardCheck, Settings as SettingsIcon } from "lucide-react";
 import { useDashboard } from "@/components/dashboard/shell";
 import { cn } from "@/lib/utils";
 
-type Section = "checkins" | "bookings" | "jobs" | "settings";
+type Section = "checkins" | "settings";
 
 function sectionOf(pathname: string): Section {
-  if (pathname.startsWith("/dashboard/bookings")) return "bookings";
-  if (pathname.startsWith("/dashboard/jobs")) return "jobs";
   if (pathname.startsWith("/dashboard/settings")) return "settings";
   return "checkins";
 }
 
 function useNavItems() {
-  const { unread, unreadJobs, unreadBookings } = useDashboard();
+  const { unread } = useDashboard();
   const active = sectionOf(usePathname());
   return [
     { id: "checkins", href: "/dashboard", label: "Customer Check-ins", Icon: ClipboardCheck, badge: unread.length },
-    { id: "bookings", href: "/dashboard/bookings", label: "Bookings", Icon: CalendarDays, badge: unreadBookings.length },
-    { id: "jobs", href: "/dashboard/jobs", label: "Jobs", Icon: ClipboardList, badge: unreadJobs.length },
     { id: "settings", href: "/dashboard/settings", label: "Settings", Icon: SettingsIcon, badge: 0 },
   ].map((i) => ({ ...i, active: i.id === active }));
 }
@@ -40,7 +36,7 @@ export function SideNav() {
   const items = useNavItems();
   return (
     <nav aria-label="Dashboard" className="no-print sticky top-0 hidden h-screen w-60 shrink-0 flex-col border-r border-line bg-white px-3 py-5 lg:flex">
-      <p className="px-3 pb-3 text-xs font-bold uppercase tracking-[0.14em] text-muted">Workshop</p>
+      <p className="px-3 pb-3 text-xs font-bold uppercase tracking-[0.14em] text-muted">Dashboard</p>
       <ul className="space-y-1">
         {items.map(({ id, href, label, Icon, badge, active }) => (
           <li key={id} className={id === "settings" ? "mt-4 border-t border-line pt-4" : undefined}>
@@ -76,7 +72,7 @@ export function MobileNav() {
               aria-current={active ? "page" : undefined}
               className={cn(
                 "flex h-11 shrink-0 items-center gap-2 whitespace-nowrap border-b-2 px-3 text-sm font-semibold transition-colors",
-                active ? "border-plate text-white" : "border-transparent text-slate-400 hover:text-white",
+                active ? "border-primary text-white" : "border-transparent text-slate-400 hover:text-white",
               )}
             >
               <Icon className="h-4 w-4" aria-hidden="true" />

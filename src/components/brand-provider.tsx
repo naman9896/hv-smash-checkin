@@ -1,8 +1,9 @@
 "use client";
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
-import { getKioskSettings, logoPublicUrl, onSettingsChanged } from "@/lib/data";
-import { DEFAULT_BUSINESS_NAME, DEFAULT_KIOSK_SETTINGS } from "@/lib/settings";
+import { business } from "@config/business";
+import { getKioskSettings, onSettingsChanged } from "@/lib/data";
+import { DEFAULT_KIOSK_SETTINGS } from "@/lib/settings";
 import { SUPABASE_CONFIGURED } from "@/lib/supabase";
 import type { KioskSettings } from "@/lib/types";
 
@@ -11,9 +12,8 @@ interface BrandContext {
   kiosk: KioskSettings;
   /** "loading" until the first fetch finishes; "error" if it failed (defaults are used). */
   state: "loading" | "ready" | "error";
+  /** From config/business.ts. */
   businessName: string;
-  /** Uploaded logo (Settings → Business Details), or null to use /public/logo.png. */
-  logoUrl: string | null;
   refresh: () => Promise<void>;
 }
 
@@ -56,8 +56,7 @@ export function BrandProvider({ children }: { children: React.ReactNode }) {
     () => ({
       kiosk,
       state,
-      businessName: kiosk.business_name?.trim() || DEFAULT_BUSINESS_NAME,
-      logoUrl: logoPublicUrl(kiosk.logo_path),
+      businessName: business.name,
       refresh,
     }),
     [kiosk, state, refresh],
