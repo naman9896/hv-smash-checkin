@@ -7,6 +7,7 @@ const COLUMNS: [string, (c: Checkin) => string | number | null | undefined][] = 
   ["Name", (c) => c.customer_name],
   ["Phone", (c) => c.phone],
   ["Email", (c) => c.email],
+  ["Rego", (c) => c.rego],
   ["Make", (c) => c.make],
   ["Model", (c) => c.model],
   ["Year", (c) => c.year],

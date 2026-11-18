@@ -8,6 +8,7 @@ interface CheckinRow {
   customer_name: string;
   phone: string;
   email: string;
+  rego: string | null;
   make: string;
   model: string;
   year: number | null;
@@ -50,6 +51,7 @@ Deno.serve(async (req) => {
       <tr><td style="padding:4px 12px 4px 0;color:#64748b">Customer</td><td>${esc(row.customer_name)}</td></tr>
       <tr><td style="padding:4px 12px 4px 0;color:#64748b">Phone</td><td>${esc(row.phone)}</td></tr>
       <tr><td style="padding:4px 12px 4px 0;color:#64748b">Email</td><td>${esc(row.email)}</td></tr>
+      <tr><td style="padding:4px 12px 4px 0;color:#64748b">Rego</td><td><b>${esc(row.rego ?? "—")}</b></td></tr>
       <tr><td style="padding:4px 12px 4px 0;color:#64748b">Vehicle</td><td>${esc(vehicle)}</td></tr>
       <tr><td style="padding:4px 12px 4px 0;color:#64748b">Job type</td><td>${esc(row.job_type ? JOB_TYPE[row.job_type] : "—")}</td></tr>
       ${row.insurance_company ? `<tr><td style="padding:4px 12px 4px 0;color:#64748b">Insurer</td><td>${esc(row.insurance_company)}</td></tr>` : ""}

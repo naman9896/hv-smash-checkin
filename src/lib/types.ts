@@ -29,6 +29,8 @@ export interface Checkin {
   /** Digits only, national format: 0403343004 or 0249324551. */
   phone: string;
 
+  /** Upper case, letters and digits only, e.g. ABC123. Null only on check-ins made before rego was added. */
+  rego: string | null;
   make: string;
   model: string;
   year: number | null;
@@ -53,6 +55,7 @@ export interface CheckinInput {
   customer_name: string;
   email: string;
   phone: string;
+  rego: string;
   make: string;
   model: string;
   year: number | null;

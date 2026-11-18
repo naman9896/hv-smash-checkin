@@ -64,7 +64,7 @@ export default function LoginPage() {
         <div className="rounded-[20px] bg-white p-7 shadow-2xl sm:p-9">
           <h1 className="text-xl font-bold">{mode === "login" ? "Staff Login" : "Reset password"}</h1>
           <p className="text-sm text-muted">
-            {mode === "login" ? "Owner Dashboard" : "We'll email you a link to choose a new password."}
+            {mode === "login" ? "Dashboard" : "We'll email you a link to choose a new password."}
           </p>
 
           {mode === "sent" ? (

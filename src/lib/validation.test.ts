@@ -6,6 +6,7 @@ const valid: CheckinFormValues = {
   customer_name: "  Jane Citizen ",
   email: " Jane@Example.com ",
   phone: "0403 343 004",
+  rego: "abc-123",
   make: "Toyota",
   model: "Corolla",
   year: "2019",
@@ -48,6 +49,7 @@ describe("checkinFormSchema", () => {
       customer_name: "Jane Citizen",
       email: "jane@example.com",
       phone: "0403343004",
+      rego: "ABC123",
       make: "Toyota",
       model: "Corolla",
       year: 2019,
@@ -58,9 +60,21 @@ describe("checkinFormSchema", () => {
     });
   });
 
-  it("requires name, email, phone, make and model", () => {
-    const e = errorsOf({ ...valid, customer_name: " ", email: "", phone: "", make: "", model: "" });
-    expect(Object.keys(e).sort()).toEqual(["customer_name", "email", "make", "model", "phone"]);
+  it("requires name, email, phone, rego, make and model", () => {
+    const e = errorsOf({ ...valid, customer_name: " ", email: "", phone: "", rego: "", make: "", model: "" });
+    expect(Object.keys(e).sort()).toEqual(["customer_name", "email", "make", "model", "phone", "rego"]);
+  });
+
+  it("normalises the rego to upper case without spaces, dots or dashes", () => {
+    for (const [raw, out] of [["abc 123", "ABC123"], [" 1ab-2cd ", "1AB2CD"], ["xy.12.zz", "XY12ZZ"], ["MYCAR123", "MYCAR123"]]) {
+      expect(checkinFormSchema().parse({ ...valid, rego: raw }).rego).toBe(out);
+    }
+  });
+
+  it("rejects a blank, too long or symbol-filled rego", () => {
+    expect(errorsOf({ ...valid, rego: " - " }).rego).toMatch(/rego/);
+    expect(errorsOf({ ...valid, rego: "ABCDE12345" }).rego).toMatch(/too long/);
+    expect(errorsOf({ ...valid, rego: "AB#123" }).rego).toMatch(/letters and numbers/);
   });
 
   it("rejects a bad email and a bad phone", () => {

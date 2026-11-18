@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Archive, CalendarDays, Car, CheckCircle2, ChevronRight, ClipboardList, FileText, Inbox, Loader2, Mail, Phone, Search, Wrench, X } from "lucide-react";
+import { Archive, CalendarDays, Car, ChevronRight, Inbox, Loader2, Search, X } from "lucide-react";
 import { JobTypeBadge, StatusPill } from "@/components/brand";
 import { CheckinDrawer } from "@/components/checkin-drawer";
 import { ReturningBadge } from "@/components/dashboard/checkin-detail";
@@ -16,8 +16,8 @@ const FILTERS: Filter[] = ["all", "new", "in_progress", "completed", "cancelled"
 const RANGES: { value: DateRange; label: string }[] = [
   { value: "all", label: "All time" },
   { value: "today", label: "Today" },
-  { value: "week", label: "This Week" },
-  { value: "month", label: "This Month" },
+  { value: "week", label: "This week" },
+  { value: "month", label: "This month" },
   { value: "custom", label: "Custom" },
 ];
 
@@ -63,7 +63,7 @@ export default function DashboardPage() {
     return inScope.filter((r) => {
       if (filter !== "all" && r.status !== filter) return false;
       if (!q) return true;
-      const hay = [r.customer_name, r.email, r.make, r.model, r.reference_no, r.insurance_company ?? "", r.claim_number ?? ""]
+      const hay = [r.customer_name, r.email, r.rego ?? "", r.make, r.model, r.reference_no, r.insurance_company ?? "", r.claim_number ?? ""]
         .join(" ")
         .toLowerCase();
       return hay.includes(q) || (qDigits.length >= 3 && r.phone.replace(/\D/g, "").includes(qDigits));
@@ -93,11 +93,12 @@ export default function DashboardPage() {
 
       <main className="mx-auto max-w-7xl px-4 pb-16 pt-6 sm:px-6">
         {/* Stats */}
+        <h1 className="sr-only">Dashboard</h1>
         <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
-          <StatCard label="All Check-ins" value={counts.all} icon={<ClipboardList />} tone="ink" active={filter === "all"} onClick={() => setFilter("all")} />
-          <StatCard label="New" value={counts.new} icon={<Inbox />} tone="blue" active={filter === "new"} onClick={() => setFilter("new")} />
-          <StatCard label="In Progress" value={counts.in_progress} icon={<Wrench />} tone="amber" active={filter === "in_progress"} onClick={() => setFilter("in_progress")} />
-          <StatCard label="Completed" value={counts.completed} icon={<CheckCircle2 />} tone="green" active={filter === "completed"} onClick={() => setFilter("completed")} />
+          <StatCard label="All check-ins" value={counts.all} active={filter === "all"} onClick={() => setFilter("all")} />
+          <StatCard label="New" value={counts.new} dot="bg-primary" active={filter === "new"} onClick={() => setFilter("new")} />
+          <StatCard label="In progress" value={counts.in_progress} dot="bg-warning" active={filter === "in_progress"} onClick={() => setFilter("in_progress")} />
+          <StatCard label="Completed" value={counts.completed} dot="bg-success" active={filter === "completed"} onClick={() => setFilter("completed")} />
         </div>
 
         {/* Search + filters */}
@@ -108,58 +109,44 @@ export default function DashboardPage() {
               type="search"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search name, phone, email, make, model or claim number"
+              placeholder="Search name, phone, rego, vehicle or claim number"
               aria-label="Search check-ins"
-              className="h-12 w-full rounded-[12px] border border-line bg-white pl-12 pr-10 text-[16px] shadow-soft focus-visible:border-primary focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/15"
+              className="h-12 w-full rounded-[12px] border border-line bg-white pl-12 pr-10 text-[16px] focus-visible:border-primary focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/15"
             />
             {query && (
               <button
                 type="button"
                 onClick={() => setQuery("")}
-                className="absolute right-2 top-1/2 inline-flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full text-muted hover:bg-slate-100"
+                className="absolute right-2 top-1/2 inline-flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-[8px] text-muted hover:bg-slate-100"
                 aria-label="Clear search"
               >
                 <X className="h-4 w-4" />
               </button>
             )}
           </div>
-          <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 lg:mx-0 lg:px-0 lg:pb-0" role="group" aria-label="Filter by status">
-            {FILTERS.map((f) => (
-              <button
-                key={f}
-                type="button"
-                aria-pressed={filter === f}
-                onClick={() => setFilter(f)}
-                className={cn(
-                  "h-10 shrink-0 rounded-full border px-4 text-sm font-semibold transition-colors",
-                  filter === f ? "border-navy bg-navy text-white" : "border-line bg-white text-ink hover:bg-slate-50",
-                )}
-              >
-                {f === "all" ? "All" : STATUS_LABEL[f]}
-                <span className={cn("ml-1.5 text-xs", filter === f ? "text-slate-300" : "text-muted")}>{counts[f]}</span>
-              </button>
-            ))}
+          <div className="-mx-4 overflow-x-auto px-4 lg:mx-0 lg:px-0">
+            <div className={SEGMENTED} role="group" aria-label="Filter by status">
+              {FILTERS.map((f) => (
+                <button key={f} type="button" aria-pressed={filter === f} onClick={() => setFilter(f)} className={segment(filter === f)}>
+                  {f === "all" ? "All" : STATUS_LABEL[f]}
+                  <span className={cn("ml-1.5 font-mono text-xs tabular-nums", filter === f ? "text-slate-300" : "text-muted")}>{counts[f]}</span>
+                </button>
+              ))}
+            </div>
           </div>
         </div>
 
         {/* Date range + archived */}
         <div className="mt-3 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-          <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Filter by date">
+          <div className="flex flex-wrap items-center gap-2">
             <CalendarDays className="h-4 w-4 text-muted" aria-hidden="true" />
-            {RANGES.map((r) => (
-              <button
-                key={r.value}
-                type="button"
-                aria-pressed={range === r.value}
-                onClick={() => setRange(r.value)}
-                className={cn(
-                  "h-9 rounded-full border px-3.5 text-sm font-semibold transition-colors",
-                  range === r.value ? "border-primary bg-primary/10 text-primary" : "border-line bg-white text-ink hover:bg-slate-50",
-                )}
-              >
-                {r.label}
-              </button>
-            ))}
+            <div className={SEGMENTED} role="group" aria-label="Filter by date">
+              {RANGES.map((r) => (
+                <button key={r.value} type="button" aria-pressed={range === r.value} onClick={() => setRange(r.value)} className={segment(range === r.value)}>
+                  {r.label}
+                </button>
+              ))}
+            </div>
             {range === "custom" && (
               <span className="flex flex-wrap items-center gap-2">
                 <label className="sr-only" htmlFor="range-from">
@@ -171,7 +158,7 @@ export default function DashboardPage() {
                   value={customFrom}
                   max={customTo || undefined}
                   onChange={(e) => setCustomFrom(e.target.value)}
-                  className="h-9 rounded-[10px] border border-line bg-white px-2.5 text-sm focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/15"
+                  className="h-10 rounded-[10px] border border-line bg-white px-3 text-sm focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/15"
                 />
                 <span className="text-sm text-muted">to</span>
                 <label className="sr-only" htmlFor="range-to">
@@ -183,12 +170,12 @@ export default function DashboardPage() {
                   value={customTo}
                   min={customFrom || undefined}
                   onChange={(e) => setCustomTo(e.target.value)}
-                  className="h-9 rounded-[10px] border border-line bg-white px-2.5 text-sm focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/15"
+                  className="h-10 rounded-[10px] border border-line bg-white px-3 text-sm focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/15"
                 />
               </span>
             )}
           </div>
-          <label className="flex items-center gap-2.5 text-sm font-semibold text-ink">
+          <label className="flex items-center gap-2 text-sm font-medium text-ink">
             <Archive className="h-4 w-4 text-muted" aria-hidden="true" />
             Show archived
             <Switch checked={showArchived} onCheckedChange={setShowArchived} aria-label="Show archived check-ins" />
@@ -196,7 +183,7 @@ export default function DashboardPage() {
         </div>
 
         {/* List */}
-        <div className="mt-5 overflow-hidden rounded-[20px] border border-line bg-white shadow-soft">
+        <div className="mt-4 overflow-hidden rounded-[16px] border border-line bg-white">
           {loading ? (
             <div className="flex items-center justify-center gap-2 py-20 text-muted">
               <Loader2 className="h-5 w-5 animate-spin" /> Loading check-ins…
@@ -204,9 +191,9 @@ export default function DashboardPage() {
           ) : visible.length === 0 ? (
             <div className="py-20 text-center">
               <Inbox className="mx-auto h-10 w-10 text-slate-300" aria-hidden="true" />
-              <p className="mt-3 font-semibold">{rows.length ? "No check-ins match" : "No check-ins yet"}</p>
+              <p className="mt-3 font-medium">{rows.length ? "No check-ins match" : "No check-ins yet"}</p>
               <p className="mt-1 text-sm text-muted">
-                {rows.length ? "Try a different search, status or date range." : "New check-ins from the iPad appear here instantly."}
+                {rows.length ? "Try a different search, status or date range" : "New check-ins from the iPad appear here as they're submitted"}
               </p>
             </div>
           ) : (
@@ -242,48 +229,40 @@ function Row({
       <button
         type="button"
         onClick={onOpen}
-        className="group flex w-full flex-col gap-3 px-4 py-4 text-left transition-colors hover:bg-slate-50 focus-visible:bg-slate-50 focus-visible:outline-none sm:px-6 md:flex-row md:items-center md:gap-5"
+        className="group flex w-full flex-col gap-3 px-4 py-4 text-left transition-colors hover:bg-slate-50 focus-visible:bg-slate-50 focus-visible:outline-none sm:px-6 md:flex-row md:items-center md:gap-6"
       >
-        <div className="min-w-0 md:w-[38%]">
-          <p className="flex flex-wrap items-center gap-2 font-bold text-ink">
+        <div className="min-w-0 md:w-[36%]">
+          <p className="flex flex-wrap items-center gap-2 font-semibold text-ink">
             {c.customer_name}
             {unread && <span className="h-2 w-2 rounded-full bg-primary" aria-label="Unread" />}
             {returning && <ReturningBadge />}
           </p>
-          <p className="mt-0.5 flex flex-wrap gap-x-4 gap-y-0.5 text-sm text-muted">
-            <span className="inline-flex items-center gap-1">
-              <Phone className="h-3.5 w-3.5" aria-hidden="true" />
-              {formatAuPhone(c.phone)}
-            </span>
-            <span className="inline-flex min-w-0 items-center gap-1">
-              <Mail className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-              <span className="truncate">{c.email}</span>
-            </span>
+          <p className="mt-1 flex min-w-0 gap-2 text-sm text-muted">
+            <span className="shrink-0 tabular-nums">{formatAuPhone(c.phone)}</span>
+            <span aria-hidden="true">·</span>
+            <span className="truncate">{c.email}</span>
           </p>
         </div>
         <div className="min-w-0 flex-1 text-sm">
-          <p className="flex flex-wrap items-center gap-2 font-semibold text-ink">
-            <Car className="h-4 w-4 shrink-0 text-muted" aria-hidden="true" />
+          <p className="flex flex-wrap items-center gap-2 font-medium text-ink">
+            {c.rego ? <Plate rego={c.rego} /> : <Car className="h-4 w-4 shrink-0 text-muted" aria-hidden="true" />}
             {vehicleTitle(c)}
             <JobTypeBadge type={c.job_type} />
           </p>
           {(c.insurance_company || c.claim_number) && (
-            <p className="mt-0.5 flex flex-wrap gap-x-3 text-muted">
+            <p className="mt-1 flex flex-wrap gap-x-3 text-muted">
               {c.insurance_company && <span>{c.insurance_company}</span>}
               {c.claim_number && <span className="font-mono">Claim #{c.claim_number}</span>}
             </p>
           )}
           {c.damage_description && (
-            <p className="mt-0.5 flex min-w-0 items-center gap-1 text-muted">
-              <FileText className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-              <span className="truncate">{c.damage_description}</span>
-            </p>
+            <p className="mt-1 truncate text-muted">{c.damage_description}</p>
           )}
         </div>
         <div className="flex items-center justify-between gap-3 md:w-[210px] md:justify-end">
           <StatusPill status={c.status} />
           <span className="text-right text-xs text-muted">
-            <span className="block font-mono">{c.reference_no}</span>
+            <span className="block font-mono tabular-nums">{c.reference_no}</span>
             <time dateTime={c.created_at}>{timeAgo(c.created_at)}</time>
           </span>
           <ChevronRight className="hidden h-5 w-5 text-slate-300 group-hover:text-slate-500 md:block" aria-hidden="true" />
@@ -293,43 +272,51 @@ function Row({
   );
 }
 
+/** The car's number plate: the thing a workshop looks a job up by. */
+function Plate({ rego }: { rego: string }) {
+  return (
+    <span className="inline-flex h-6 shrink-0 items-center rounded-[4px] border border-ink/25 bg-white px-2 font-mono text-xs font-semibold tracking-wider text-ink shadow-[inset_0_-1px_0_rgb(0_0_0/0.06)]">
+      {rego}
+    </span>
+  );
+}
+
+const SEGMENTED = "inline-flex shrink-0 gap-1 rounded-[12px] border border-line bg-white p-1";
+const segment = (active: boolean) =>
+  cn(
+    "h-8 shrink-0 whitespace-nowrap rounded-[8px] px-3 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/20",
+    active ? "bg-navy text-white" : "text-ink hover:bg-slate-100",
+  );
+
 function StatCard({
   label,
   value,
-  icon,
-  tone,
+  dot,
   active,
   onClick,
 }: {
   label: string;
   value: number;
-  icon: React.ReactNode;
-  tone: "ink" | "blue" | "amber" | "green";
+  /** Status colour, matching the status pills. None for the "all" card. */
+  dot?: string;
   active: boolean;
   onClick: () => void;
 }) {
-  const tones = {
-    ink: "bg-slate-100 text-slate-700",
-    blue: "bg-primary/10 text-primary",
-    amber: "bg-amber-50 text-amber-600",
-    green: "bg-emerald-50 text-emerald-600",
-  };
-  const ring = { ink: "ring-slate-900", blue: "ring-primary", amber: "ring-warning", green: "ring-success" };
   return (
     <button
       type="button"
       onClick={onClick}
       aria-pressed={active}
       className={cn(
-        "flex items-center justify-between rounded-[20px] border border-line bg-white p-4 text-left shadow-soft transition-shadow hover:shadow-md sm:p-5",
-        active && `ring-2 ${ring[tone]}`,
+        "rounded-[16px] border bg-white p-5 text-left transition-colors focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/20",
+        active ? "border-primary ring-1 ring-primary" : "border-line hover:border-ink/20 hover:bg-slate-50",
       )}
     >
-      <div>
-        <p className="text-sm font-medium text-muted">{label}</p>
-        <p className="mt-1 text-3xl font-bold tabular-nums text-ink">{value}</p>
-      </div>
-      <span className={cn("flex h-12 w-12 items-center justify-center rounded-[14px] [&_svg]:h-6 [&_svg]:w-6", tones[tone])}>{icon}</span>
+      <p className="flex items-center gap-2 text-sm text-muted">
+        {dot && <span className={cn("h-2 w-2 rounded-full", dot)} aria-hidden="true" />}
+        {label}
+      </p>
+      <p className="mt-2 text-3xl font-medium tabular-nums text-ink">{value}</p>
     </button>
   );
 }

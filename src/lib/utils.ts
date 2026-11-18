@@ -63,6 +63,11 @@ export function timeAgo(iso: string): string {
   return formatDateTime(iso);
 }
 
+/** Rego as stored: upper case, no spaces, dots or dashes ("abc-123" → "ABC123"). */
+export function normaliseRego(raw: string): string {
+  return raw.toUpperCase().replace(/[\s.\-]/g, "");
+}
+
 export function vehicleTitle(c: { year: number | null; make: string; model: string }) {
   return [c.year, c.make, c.model].filter(Boolean).join(" ");
 }

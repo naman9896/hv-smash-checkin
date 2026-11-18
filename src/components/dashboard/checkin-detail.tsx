@@ -202,6 +202,7 @@ export function CheckinBody({ c, className }: { c: Checkin; className?: string }
               </a>
             }
           />
+          <DetailRow label="Rego" value={c.rego && <span className="font-mono font-bold">{c.rego}</span>} copy={c.rego} />
           <DetailRow label="Make" value={c.make} copy={c.make} />
           <DetailRow label="Model" value={c.model} copy={c.model} />
           <DetailRow label="Year" value={c.year} copy={c.year} />

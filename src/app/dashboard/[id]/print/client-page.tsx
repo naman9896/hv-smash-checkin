@@ -88,6 +88,7 @@ export default function PrintCheckinSheetPage() {
           <SheetTable
             title="Vehicle"
             rows={[
+              ["Rego", c.rego],
               ["Make", c.make],
               ["Model", c.model],
               ["Year", c.year],

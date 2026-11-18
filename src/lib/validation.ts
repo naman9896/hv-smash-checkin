@@ -1,6 +1,6 @@
 import { z } from "zod";
 import type { CheckinInput } from "./types";
-import { isValidAuPhone, normaliseAuPhone } from "./utils";
+import { isValidAuPhone, normaliseAuPhone, normaliseRego } from "./utils";
 
 /* ------------------------------------------------------------------ */
 /* Kiosk check-in                                                      */
@@ -18,6 +18,7 @@ export const LIMITS = {
   email: 254,
   make: 60,
   model: 80,
+  rego: 9,
   insurance_company: 120,
   claim_number: 60,
   damage_description: 500,
@@ -31,6 +32,7 @@ export interface CheckinFormValues {
   customer_name: string;
   email: string;
   phone: string;
+  rego: string;
   make: string;
   model: string;
   year: string;
@@ -65,6 +67,16 @@ function fields() {
       .min(1, "Please enter your phone number")
       .refine(isValidAuPhone, "Enter a valid Australian number, e.g. 0412 345 678 or 02 4932 4551")
       .transform(normaliseAuPhone),
+    rego: z
+      .string()
+      .transform(normaliseRego)
+      .pipe(
+        z
+          .string()
+          .min(1, "Please enter the car's rego")
+          .max(LIMITS.rego, "Rego is too long")
+          .regex(/^[A-Z0-9]+$/, "Use letters and numbers only, e.g. ABC123"),
+      ),
     make: required(LIMITS.make, "Please enter the vehicle make", "Make is too long"),
     model: required(LIMITS.model, "Please enter the vehicle model", "Model is too long"),
     year: z

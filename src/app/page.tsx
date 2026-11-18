@@ -16,10 +16,10 @@ const portals = [
   },
   {
     href: "/dashboard",
-    title: "Owner Dashboard",
+    title: "Dashboard",
     description: "Every check-in the moment it's submitted. Search, update status, copy details, add notes and print.",
     chips: ["Real-time updates", "Search & filters", "One-tap copy"],
-    cta: "Enter Owner Dashboard",
+    cta: "Open dashboard",
     Icon: LayoutGrid,
     accent: "green" as const,
   },

@@ -27,7 +27,7 @@ Two places can't import the config file:
 | Section | Fields |
 |---|---|
 | Customer (required) | Full name, email, phone (Australian mobile or landline) |
-| Vehicle | Make *, model *, year (optional, 1950 – next year) |
+| Vehicle | Rego * (letters and digits, up to 9, stored upper case without spaces), make *, model *, year (optional, 1950 – next year) |
 | Job (optional) | Job type: Insurance / Private. Insurance company and claim number appear only for Insurance. Damage description (max 500 characters, with a counter) |
 | Signature (required) | Finger / Apple Pencil signature pad |
 
@@ -101,10 +101,10 @@ The app itself blocks zoom, long-press, pull-to-refresh and the back swipe, and 
   - The start of the damage description.
 - **Detail view:**
   - Tap-to-call and email links.
-  - A **copy button** on every field: name, phone, email, make, model, year, job type, insurer, claim number and damage. It copies the clean value (e.g. `0403343004`), flashes a green tick and shows a "Copied" toast. It falls back to `execCommand('copy')` if the Clipboard API is blocked.
+  - A **copy button** on every field: name, phone, email, rego, make, model, year, job type, insurer, claim number and damage. It copies the clean value (e.g. `0403343004`), flashes a green tick and shows a "Copied" toast. It falls back to `execCommand('copy')` if the Clipboard API is blocked.
   - **Copy all details** copies everything as formatted text.
   - Signature, status, internal notes (autosave), archive, customer history (by phone) and **Print check-in sheet**.
-- **Search** covers name, phone, email, make, model, insurer, claim number and reference. Filters: status and date range.
+- **Search** covers name, phone, email, rego, make, model, insurer, claim number and reference. Filters: status and date range.
 
 ## 7. Data
 

@@ -30,6 +30,7 @@ const blank = (): CheckinFormValues => ({
   customer_name: "",
   email: "",
   phone: "",
+  rego: "",
   make: "",
   model: "",
   year: "",
@@ -44,6 +45,7 @@ const FIELD_ORDER: FieldKey[] = [
   "customer_name",
   "email",
   "phone",
+  "rego",
   "make",
   "model",
   "year",
@@ -338,7 +340,20 @@ export default function KioskForm() {
 
           {/* 2. Vehicle */}
           <Section n={2} icon={<Car />} title="Vehicle Details" subtitle="The car you're dropping off">
-            <div className="grid gap-5 sm:grid-cols-3">
+            <div className="grid gap-5 sm:grid-cols-2">
+              <Field id="rego" label="Car Rego" required error={err("rego")} hint="Number plate">
+                <Input
+                  {...bind("rego")}
+                  onChange={(e) => set("rego", e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, LIMITS.rego))}
+                  autoCapitalize="characters"
+                  autoComplete="off"
+                  autoCorrect="off"
+                  spellCheck={false}
+                  placeholder="e.g. ABC123"
+                  maxLength={LIMITS.rego}
+                  className="h-14 font-mono text-[18px] uppercase tracking-wider"
+                />
+              </Field>
               <Field id="make" label="Make" required error={err("make")}>
                 <Input
                   {...bind("make")}

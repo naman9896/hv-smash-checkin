@@ -29,23 +29,23 @@ export function DashboardHeader({ back }: { back?: { href: string; label: string
   const liveLabel = live === "live" ? "Live" : live === "reconnecting" ? "Reconnecting…" : "Connecting…";
 
   return (
-    <header className="no-print sticky top-0 z-30 border-b-4 border-primary bg-navy text-white shadow-lg">
+    <header className="no-print sticky top-0 z-30 border-b border-white/10 bg-navy text-white">
       <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-4 py-2.5 sm:px-6">
         <div className="flex min-w-0 items-center gap-3">
           <Link href="/dashboard" className="shrink-0 rounded-[8px] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-white/20">
             <Logo className="h-11 sm:h-12" />
           </Link>
           <div className="min-w-0">
-            <span className="rounded-full bg-success/15 px-2.5 py-0.5 text-xs font-semibold text-success">Owner Dashboard</span>
+            <p className="text-sm font-medium text-white">Dashboard</p>
             <div className="mt-1 flex items-center gap-2 text-xs text-slate-400" aria-live="polite">
               <span
                 className={cn(
                   "h-2 w-2 rounded-full",
-                  live === "live" ? "live-dot bg-success" : live === "reconnecting" ? "animate-pulse bg-warning" : "bg-slate-500",
+                  live === "live" ? "live-dot bg-success" : live === "reconnecting" ? "bg-warning" : "bg-slate-500",
                 )}
                 aria-hidden="true"
               />
-              <span className={cn(live === "live" && "font-semibold text-success", live === "reconnecting" && "font-semibold text-warning")}>
+              <span className={cn(live === "live" && "font-medium text-success", live === "reconnecting" && "font-medium text-warning")}>
                 {liveLabel}
               </span>
             </div>
@@ -63,15 +63,15 @@ export function DashboardHeader({ back }: { back?: { href: string; label: string
             >
               <Bell className="h-5 w-5" />
               {unread.length > 0 && (
-                <span className="absolute right-1 top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-danger px-1 text-[11px] font-bold text-white">
+                <span className="absolute right-1 top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-danger px-1 text-[11px] font-semibold tabular-nums text-white">
                   {unread.length > 99 ? "99+" : unread.length}
                 </span>
               )}
             </button>
             {bellOpen && (
-              <div className="absolute right-0 top-12 z-40 w-[min(340px,calc(100vw-2rem))] overflow-hidden rounded-[16px] border border-line bg-white text-ink shadow-2xl">
+              <div className="absolute right-0 top-12 z-40 w-[min(340px,calc(100vw-2rem))] overflow-hidden rounded-[16px] border border-line bg-white text-ink shadow-soft">
                 <div className="flex items-center justify-between border-b border-line px-4 py-3">
-                  <p className="text-sm font-bold">Unread check-ins</p>
+                  <p className="text-sm font-medium">Unread check-ins</p>
                   {unread.length > 0 && (
                     <button
                       type="button"
@@ -79,14 +79,14 @@ export function DashboardHeader({ back }: { back?: { href: string; label: string
                         markAllAsRead();
                         setBellOpen(false);
                       }}
-                      className="inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline"
+                      className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
                     >
                       <CheckCheck className="h-3.5 w-3.5" /> Mark all read
                     </button>
                   )}
                 </div>
                 {unread.length === 0 ? (
-                  <p className="px-4 py-6 text-center text-sm text-muted">You&apos;re all caught up.</p>
+                  <p className="px-4 py-6 text-center text-sm text-muted">No unread check-ins</p>
                 ) : (
                   <ul className="max-h-80 divide-y divide-line overflow-y-auto">
                     {unread.slice(0, 20).map((c) => (
@@ -102,7 +102,7 @@ export function DashboardHeader({ back }: { back?: { href: string; label: string
                           <span className="min-w-0">
                             <span className="block truncate text-sm font-semibold">{c.customer_name}</span>
                             <span className="block truncate text-xs text-muted">
-                              <span className="font-mono font-bold">{c.reference_no}</span> · {c.make} {c.model}
+                              <span className="font-mono font-semibold">{c.reference_no}</span> · {c.rego ? `${c.rego} · ` : ""}{c.make} {c.model}
                             </span>
                           </span>
                           <span className="shrink-0 text-xs text-muted">{timeAgo(c.created_at)}</span>
@@ -119,11 +119,11 @@ export function DashboardHeader({ back }: { back?: { href: string; label: string
           </Button>
           <Button asChild variant="default" className="hidden md:inline-flex">
             <Link href="/kiosk" target="_blank">
-              <Tablet /> Open iPad Kiosk
+              <Tablet /> Open iPad kiosk
             </Link>
           </Button>
           <Button asChild variant="dark" size="icon" className="md:hidden">
-            <Link href="/kiosk" target="_blank" aria-label="Open iPad Kiosk">
+            <Link href="/kiosk" target="_blank" aria-label="Open iPad kiosk">
               <Tablet />
             </Link>
           </Button>

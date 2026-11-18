@@ -68,6 +68,7 @@ export async function POST(request: Request) {
     p_customer_name: input.customer_name,
     p_email: input.email,
     p_phone: input.phone,
+    p_rego: input.rego,
     p_make: input.make,
     p_model: input.model,
     p_year: input.year,
