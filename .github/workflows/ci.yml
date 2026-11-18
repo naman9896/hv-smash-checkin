@@ -34,7 +34,14 @@ jobs:
       - run: npm run lint
       - run: npm run typecheck
       - run: npm test
-      - run: npm audit --audit-level=high
+      # Blocks on anything that ships in the app.
+      - name: npm audit (production deps)
+        run: npm audit --omit=dev --audit-level=high
+      # Dev tooling (ESLint, Vitest) only runs locally and in CI, so report
+      # its advisories without failing the build.
+      - name: npm audit (dev tools, report only)
+        run: npm audit --audit-level=high
+        continue-on-error: true
 
   semgrep:
     name: Semgrep CE (static analysis)
